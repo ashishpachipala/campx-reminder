@@ -1,10 +1,8 @@
 const puppeteer = require('puppeteer');
-const twilio = require('twilio');
 const EMAIL = process.env.CAMPX_EMAIL;
 const PASSWORD = process.env.CAMPX_PASSWORD;
-const client = twilio(process.env.TWILIO_SID, process.env.TWILIO_TOKEN);
-const TWILIO_WA = process.env.TWILIO_WHATSAPP || '+14155238886';
-const MY_PHONE = process.env.MY_PHONE;
+const CALLMEBOT_PHONE = process.env.CALLMEBOT_PHONE;
+const CALLMEBOT_APIKEY = process.env.CALLMEBOT_APIKEY;
 const CAMPX_URL = 'https://mruh.campx.in/mruh/student-workspace/learning-management/2199/assessments';
 
 function todayISO() { return new Date().toISOString().split('T')[0]; }
@@ -18,12 +16,20 @@ function normalizeDate(raw) {
   } catch { return ''; }
 }
 async function sendWhatsApp(msg) {
-  try { const r = await client.messages.create({from:`whatsapp:${TWILIO_WA}`,to:`whatsapp:${MY_PHONE}`,body:msg}); console.log('WhatsApp sent:',r.sid); }
-  catch(e) { console.error('WhatsApp failed:',e.message); }
-}
-async function makeCall(name) {
-  try { const r = await client.calls.create({from:TWILIO_WA,to:MY_PHONE,twiml:`<Response><Say voice="alice" language="en-IN">Urgent! Your assignment ${name} is due today. Submit on CampX immediately!</Say></Response>`}); console.log('Call:',r.sid); }
-  catch(e) { console.error('Call failed:',e.message); }
+  try {
+    const url = new URL('https://api.callmebot.com/whatsapp.php');
+    url.searchParams.set('phone', CALLMEBOT_PHONE);
+    url.searchParams.set('text', msg);
+    url.searchParams.set('apikey', CALLMEBOT_APIKEY);
+    const response = await fetch(url.toString());
+    const body = await response.text();
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${body.slice(0, 200)}`);
+    }
+    console.log('WhatsApp sent via CallMeBot');
+  } catch (e) {
+    console.error('WhatsApp failed:', e.message);
+  }
 }
 async function scrapeCampX() {
   const browser = await puppeteer.launch({headless:true,args:['--no-sandbox','--disable-setuid-sandbox','--disable-dev-shm-usage','--disable-gpu','--single-process']});
@@ -64,13 +70,16 @@ async function scrapeCampX() {
 async function main() {
   const hour=currentHourIST(),today=todayISO();
   console.log(`CampX Scan | ${today} | ${hour}:00 IST`);
+  if (!EMAIL || !PASSWORD || !CALLMEBOT_PHONE || !CALLMEBOT_APIKEY) {
+    throw new Error('Missing required secrets: CAMPX_EMAIL, CAMPX_PASSWORD, CALLMEBOT_PHONE, CALLMEBOT_APIKEY');
+  }
   const due=await scrapeCampX();
   if(!due.length){console.log('No assignments due today.');return;}
   for(const name of due){
-    if(hour>=6&&hour<10) await sendWhatsApp(`📚 *Good morning!*\n\n*${name}* is due *TODAY* on CampX.\nSubmit now!\n\n🔗 https://mruh.campx.in`);
-    else if(hour>=16&&hour<19) await sendWhatsApp(`⏰ *Evening Reminder!*\n\n*${name}* is due TODAY.\nLog into CampX!\n\n🔗 https://mruh.campx.in`);
-    else if(hour>=20&&hour<23){await sendWhatsApp(`🚨 *URGENT!*\n\n*${name}* due TODAY! Submit IMMEDIATELY!\n\n🔗 https://mruh.campx.in`);await makeCall(name);}
-    else console.log(`Hour ${hour} IST — background scan only.`);
+    if(hour>=6&&hour<10) await sendWhatsApp(`Good morning!\n\n${name} is due TODAY on CampX.\nSubmit now!\n\nhttps://mruh.campx.in`);
+    else if(hour>=16&&hour<19) await sendWhatsApp(`Evening Reminder!\n\n${name} is due TODAY.\nLog into CampX!\n\nhttps://mruh.campx.in`);
+    else if(hour>=20&&hour<23) await sendWhatsApp(`URGENT!\n\n${name} is due TODAY. Submit immediately!\n\nhttps://mruh.campx.in`);
+    else console.log(`Hour ${hour} IST - background scan only.`);
   }
 }
 main().catch(e=>{console.error('Fatal:',e);process.exit(1);});

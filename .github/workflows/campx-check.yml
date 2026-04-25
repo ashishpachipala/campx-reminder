@@ -23,7 +23,5 @@ jobs:
         env:
           CAMPX_EMAIL:     ${{ secrets.CAMPX_EMAIL }}
           CAMPX_PASSWORD:  ${{ secrets.CAMPX_PASSWORD }}
-          TWILIO_SID:      ${{ secrets.TWILIO_SID }}
-          TWILIO_TOKEN:    ${{ secrets.TWILIO_TOKEN }}
-          TWILIO_WHATSAPP: ${{ secrets.TWILIO_WHATSAPP }}
-          MY_PHONE:        ${{ secrets.MY_PHONE }}
+          CALLMEBOT_PHONE: ${{ secrets.CALLMEBOT_PHONE }}
+          CALLMEBOT_APIKEY: ${{ secrets.CALLMEBOT_APIKEY }}
