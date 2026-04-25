@@ -1,0 +1,29 @@
+name: CampX Assignment Reminder
+
+on:
+  schedule:
+    - cron: '0 */2 * * *'
+  workflow_dispatch:
+
+jobs:
+  check-and-notify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install Chrome deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libxcomposite1 libxdamage1 libxrandr2 libgbm1 libxkbcommon0 libpango-1.0-0 libasound2 --no-install-recommends
+      - run: npm install
+      - run: node campx_check.js
+        env:
+          CAMPX_EMAIL:     ${{ secrets.CAMPX_EMAIL }}
+          CAMPX_PASSWORD:  ${{ secrets.CAMPX_PASSWORD }}
+          TWILIO_SID:      ${{ secrets.TWILIO_SID }}
+          TWILIO_TOKEN:    ${{ secrets.TWILIO_TOKEN }}
+          TWILIO_WHATSAPP: ${{ secrets.TWILIO_WHATSAPP }}
+          MY_PHONE:        ${{ secrets.MY_PHONE }}

@@ -1,0 +1,11 @@
+{
+  "name": "campx-whatsapp-reminder",
+  "version": "1.0.0",
+  "main": "campx_check.js",
+  "scripts": { "start": "node campx_check.js" },
+  "dependencies": {
+    "puppeteer": "^21.0.0",
+    "twilio": "^4.20.0"
+  },
+  "engines": { "node": ">=18" }
+}
